@@ -57,6 +57,10 @@ std::string NFA::convertToDot() {
     dot += "\trankdir=LR;\n";
     dot += "\tnode [shape=circle];\n";
 
+    for (int state : acceptStates) {
+        dot += "\tS" + std::to_string(state) + " [shape=doublecircle];\n";
+    }
+
     for (const auto &[key, value] : transitionTable) {
         int fromState = key.first;
         char transitionChar = key.second;
@@ -170,12 +174,11 @@ NFA NFA::alternative(const NFA &nfa1, const NFA &nfa2) {
         if (key.first == nfa2.startState) continue;
 
         std::set<int> newValue;
-        for (const auto &state : value) {
+        for (const int &state : value) {
             newValue.insert(state + offset);
         }
 
-        auto newKey = std::make_pair(key.first + offset, key.second);
-        newTransitions[newKey] = newValue;
+        newTransitions[{key.first + offset, key.second}] = newValue;
     }
 
     for (const char &symbol : nfa1.alphabet) {
@@ -221,3 +224,36 @@ NFA NFA::alternative(const NFA &nfa1, const NFA &nfa2) {
     return newNfa;
 }
 
+NFA NFA::iteration(const NFA &nfa) {
+    std::set newAlphabet = nfa.alphabet;
+
+    int newStartState = *std::max_element(nfa.states.begin(), nfa.states.end()) + 1;
+    std::set<int> newStates = nfa.states;
+    newStates.erase(nfa.startState);
+    newStates.insert(newStartState);
+
+    std::set<int> newAcceptStates = nfa.acceptStates;
+    newAcceptStates.insert(newStartState);
+
+    std::map<std::pair<int, char>, std::set<int>> newTransitions;
+    
+    for (const char &symbol : nfa.alphabet) {
+        auto it = nfa.transitionTable.find({nfa.startState, symbol});
+        if (it != nfa.transitionTable.end()) {
+            newTransitions[{newStartState, symbol}].insert(it->second.begin(), it->second.end());
+            for (int state : nfa.acceptStates) {
+                newTransitions[{state, symbol}].insert(it->second.begin(), it->second.end());
+            }
+        }
+    }
+
+    for (const auto &[key, value] : nfa.transitionTable) {
+        if (key.first != nfa.startState) {
+            newTransitions[key].insert(value.begin(), value.end());
+        }
+    }
+    
+    NFA newNFA = NFA(newStates, newAlphabet, newStartState, newAcceptStates);
+    newNFA.transitionTable = newTransitions;
+    return newNFA;
+}

@@ -17,7 +17,7 @@ void writeDotToFile(NFA nfa, const std::string filename) {
     }
 }
 
-int main() {
+int main1() {
     std::set<int> states1 = {1, 2};
     std::set<char> alphabet1 = {'0', '1'};
     int startState1 = 1;
@@ -42,7 +42,7 @@ int main() {
 
 
     NFA c_nfa = NFA::alternative(nfa1, nfa2);
-    writeDotToFile(c_nfa, "c.gv");
+    writeDotToFile(c_nfa, "main.gv");
 
     for (const auto& [key, value] : c_nfa.transitionTable) {
         cout << key.first << " " << key.second << " - ";
@@ -65,6 +65,45 @@ int main() {
     } else {
         std::cout << "Input rejected." << std::endl;
     }
+
+    return 0;
+}
+
+
+int main2() {
+    std::set<int> states = {13, 7, 8, 10, 11};
+    std::set<char> alphabet = {'0', '1'};
+    int startState = 13;
+    std::set<int> acceptStates = {11};
+
+    NFA nfa1(states, alphabet, startState, acceptStates);
+
+    nfa1.addTransition(13, '0', {7, 10});
+    nfa1.addTransition(7, '1', {8});
+    nfa1.addTransition(8, '0', {7, 10});
+    nfa1.addTransition(10, '0', {11});
+
+    cout << 123 << endl;
+    writeDotToFile(nfa1, "main.gv");
+
+    return 0;
+}
+
+
+int main() {
+    std::set<int> states = {3, 4, 5};
+    std::set<char> alphabet = {'0', '1'};
+    int startState = 3;
+    std::set<int> acceptStates = {5};
+
+    NFA nfa(states, alphabet, startState, acceptStates);
+
+    nfa.addTransition(3, '0', {4});
+    nfa.addTransition(4, '1', {5});
+
+    NFA nfa_i = NFA::iteration(nfa);
+
+    writeDotToFile(nfa_i, "main.gv");
 
     return 0;
 }

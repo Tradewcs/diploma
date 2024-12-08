@@ -18,6 +18,7 @@ public:
     
     static NFA concatenate(const NFA &nfa1, const NFA &nfa2);
     static NFA alternative(const NFA &nfa1, const NFA &nfa2);
+    static NFA iteration(const NFA &nfa);
 
 private:
     bool runHelper(int currentState, const std::string &input, int index);

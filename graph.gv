@@ -1,4 +1,0 @@
-digraph G {
-	S0 -> S1
-	S1 -> S1
-}

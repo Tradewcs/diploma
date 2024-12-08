@@ -1,2 +1,4 @@
 g++ main.cpp NFA.cpp -o nfa && ./nfa
 
+dot -Tpng main.gv -o main.png
+eog main.png
