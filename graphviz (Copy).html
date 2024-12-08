@@ -1,0 +1,59 @@
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+
+<div id="graph" style="text-align: center;"></div>
+<button id="export">Export to GIF</button>
+
+<script>
+var dotIndex = 0;
+var graphviz = d3.select("#graph").graphviz()
+    .transition(function () {
+        return d3.transition("main")
+            .ease(d3.easeLinear)
+            .delay(500)
+            .duration(1500);
+    })
+    .on("initEnd", render);
+
+function render() {
+    var dotLines = dots[dotIndex];
+    var dot = dotLines.join('');
+    graphviz
+        .renderDot(dot)
+        .on("end", function () {
+            captureFrame(); // Capture the current frame
+            dotIndex = (dotIndex + 1) % dots.length;
+            render();
+        });
+}
+
+var dots = [
+    ['digraph  {', '    a -> b', '    a -> a', '}'],
+    ['digraph  {', '    a -> b', '    a -> a', '    b -> c', '    b -> d', '}']
+];
+
+var gif = new GIF({
+    workers: 2,
+    quality: 10
+});
+
+// Capture the frame using html2canvas
+function captureFrame() {
+    html2canvas(document.querySelector("#graph")).then(canvas => {
+        gif.addFrame(canvas, { delay: 1500 });
+    });
+}
+
+// Export the GIF
+document.getElementById("export").addEventListener("click", function () {
+    gif.on('finished', function (blob) {
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = 'animation.gif';
+        link.click();
+    });
+    gif.render();
+});
+</script>
+

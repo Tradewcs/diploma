@@ -1,0 +1,2 @@
+g++ main.cpp NFA.cpp -o nfa && ./nfa
+
