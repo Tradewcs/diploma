@@ -2,7 +2,6 @@ digraph NFA {
 	rankdir=LR;
 	node [shape=circle];
 	S2 [shape=doublecircle];
-	S4 [shape=doublecircle];
 	S2 -> S2 [label="a"];
 	S2 -> S3 [label="b"];
 	S3 -> S2 [label="c"];

@@ -241,7 +241,49 @@ NFA NFA::iteration(const NFA &nfa) {
     newStates.insert(newStartState);
 
     std::set<int> newAcceptStates = nfa.acceptStates;
+    newAcceptStates.erase(nfa.startState);
     newAcceptStates.insert(newStartState);
+
+    std::map<std::pair<int, char>, std::set<int>> newTransitions;
+    
+    for (const char &symbol : nfa.alphabet) {
+        auto it = nfa.transitionTable.find({nfa.startState, symbol});
+        if (it != nfa.transitionTable.end()) {
+            newTransitions[{newStartState, symbol}].insert(it->second.begin(), it->second.end());
+            for (int state : nfa.acceptStates) {
+                newTransitions[{state, symbol}].insert(it->second.begin(), it->second.end());
+            }
+        }
+    }
+
+    for (const auto &[key, value] : nfa.transitionTable) {
+        if (key.first != nfa.startState) {
+            newTransitions[key].insert(value.begin(), value.end());
+        }
+    }
+    
+    NFA newNFA = NFA(newStates, newAlphabet, newStartState, newAcceptStates);
+    newNFA.transitionTable = newTransitions;
+    return newNFA;
+}
+
+
+NFA NFA::iteration_plus(const NFA &nfa) {
+    std::set newAlphabet = nfa.alphabet;
+
+    int newStartState = *std::max_element(nfa.states.begin(), nfa.states.end()) + 1;
+    std::set<int> newStates = nfa.states;
+    newStates.erase(nfa.startState);
+    newStates.insert(newStartState);
+
+    std::set<int> newAcceptStates;
+    for (int state : nfa.acceptStates) {
+        if (state == nfa.startState) {
+            newAcceptStates.insert(newStartState);
+        } else {
+            newAcceptStates.insert(state);
+        }
+    }
 
     std::map<std::pair<int, char>, std::set<int>> newTransitions;
     
