@@ -46,7 +46,7 @@ int main() {
 
 
 
-    NFA c_nfa = NFA::concatenate(nfa1, nfa2);
+    NFA c_nfa = NFA::concatenation(nfa1, nfa2);
 
     cout << c_nfa.transitionTable.size() << endl;
     cout << endl;

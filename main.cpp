@@ -44,20 +44,20 @@ int main1() {
     NFA c_nfa = NFA::alternative(nfa1, nfa2);
     writeDotToFile(c_nfa, "main.gv");
 
-    for (const auto& [key, value] : c_nfa.transitionTable) {
-        cout << key.first << " " << key.second << " - ";
-        for (auto s : value) {
-            cout << s << " ";
-        }
-        cout << endl;
-    }
-    cout << endl;
+    // for (const auto& [key, value] : c_nfa.transitionTable) {
+    //     cout << key.first << " " << key.second << " - ";
+    //     for (auto s : value) {
+    //         cout << s << " ";
+    //     }
+    //     cout << endl;
+    // }
+    // cout << endl;
 
-    cout << endl;
-    for (auto st : c_nfa.states) {
-        cout << st << " ";
-    }
-    cout << endl;
+    // cout << endl;
+    // for (auto st : c_nfa.states) {
+    //     cout << st << " ";
+    // }
+    // cout << endl;
 
     std::string input = "10111";
     if (c_nfa.run(input)) {
@@ -90,16 +90,17 @@ int main2() {
 }
 
 
-int main() {
-    std::set<int> states = {3, 4, 5};
-    std::set<char> alphabet = {'0', '1'};
-    int startState = 3;
-    std::set<int> acceptStates = {5};
+int main_example() {
+    std::set<int> states = {1, 2, 3};
+    std::set<char> alphabet = {'a', 'b', 'c'};
+    int startState = 1;
+    std::set<int> acceptStates = {2};
 
     NFA nfa(states, alphabet, startState, acceptStates);
 
-    nfa.addTransition(3, '0', {4});
-    nfa.addTransition(4, '1', {5});
+    nfa.addTransition(1, 'a', {2});
+    nfa.addTransition(2, 'b', {3});
+    nfa.addTransition(3, 'c', {2});
 
     NFA nfa_i = NFA::iteration(nfa);
 
@@ -107,3 +108,26 @@ int main() {
 
     return 0;
 }
+
+
+
+int main() {
+    std::set<int> states = {1, 2, 3};
+    std::set<char> alphabet = {'a', 'b', 'c'};
+    int startState = 1;
+    std::set<int> acceptStates = {2};
+
+    NFA nfa(states, alphabet, startState, acceptStates);
+
+    nfa.addTransition(1, 'a', {2});
+    nfa.addTransition(2, 'b', {3});
+    nfa.addTransition(3, 'c', {2});
+
+    NFA nfa_i = NFA::iteration(nfa);
+
+    writeDotToFile(nfa_i, "main.gv");
+
+    return 0;
+}
+
+

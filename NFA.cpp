@@ -75,7 +75,7 @@ std::string NFA::convertToDot() {
     return dot;
 }
 
-NFA NFA::concatenate(const NFA& nfa1, const NFA& nfa2) {
+NFA NFA::concatenation(const NFA& nfa1, const NFA& nfa2) {
     std::set<int> newStates;
     std::set<char> newAlphabet = nfa1.alphabet;
     newAlphabet.insert(nfa2.alphabet.begin(), nfa2.alphabet.end());
@@ -110,8 +110,7 @@ NFA NFA::concatenate(const NFA& nfa1, const NFA& nfa2) {
             }
         }
 
-        auto newKey = std::make_pair(key.first + offset, key.second);
-        newTransitions[newKey] = newValue;
+        newTransitions[{key.first + offset, key.second}] = newValue;
     }
 
     for (int acceptState : nfa1.acceptStates) {
@@ -217,6 +216,15 @@ NFA NFA::alternative(const NFA &nfa1, const NFA &nfa2) {
 
     for (int state : nfa1.acceptStates) newAcceptStates.insert(state);
     for (int state : nfa2.acceptStates) newAcceptStates.insert(state + offset);
+
+    auto s1 = newAcceptStates.find(nfa1.startState);
+    auto s2 = newAcceptStates.find(nfa2.startState + offset);
+    if (s1 != newAcceptStates.end() || s2 != newAcceptStates.end()) {
+        newAcceptStates.erase(s1);
+        newAcceptStates.erase(s2);
+
+        newAcceptStates.insert(newStartState);
+    }
 
     NFA newNfa = NFA(newStates, newAlphabet, newStartState, newAcceptStates);
     newNfa.transitionTable = newTransitions;
