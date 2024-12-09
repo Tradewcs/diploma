@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iostream>
-#include <vector>
 #include <map>
 #include <set>
 #include <string>
@@ -18,20 +16,21 @@ public:
     NFA(const std::set<int>& states, const std::set<char>& alphabet, int startState, const std::set<int>& acceptStates) 
         : states(states), alphabet(alphabet), startState(startState), acceptStates(acceptStates) {}
 
+
     void addTransition(int state, char symbol, const std::set<int> &nextStates);
     void newState();
-    bool run(const std::string &input);
-    
-    
+    void addSymbol(char c);
+
     static NFA concatenation(const NFA &nfa1, const NFA &nfa2);
     static NFA alternative(const NFA &nfa1, const NFA &nfa2);
 
     static NFA iteration(const NFA &nfa);
     static NFA iteration_plus(const NFA &nfa);
 
+    std::string convertToDot();
+
+    bool run(const std::string &input);
+
 private:
     bool runHelper(int currentState, const std::string &input, int index);
- 
-public:
-    std::string convertToDot();
 };

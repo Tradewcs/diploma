@@ -17,70 +17,39 @@ void writeDotToFile(NFA nfa, const std::string filename) {
     }
 }
 
-void alternative_test() {
-    std::set<int> states1 = {1, 2};
-    std::set<char> alphabet1 = {'0', '1'};
+NFA dummy({0}, {'0'}, 0, {0});
+
+NFA nfa1 = dummy;
+NFA nfa2 = dummy;
+
+void concatenation_setup() {
+    std::set<int> states1 = {1, 2, 3};
+    std::set<char> alphabet1 = {'a', 'b'};
     int startState1 = 1;
-    std::set<int> acceptStates1 = {2};
+    std::set<int> acceptStates1 = {2, 3};
 
-    NFA nfa1(states1, alphabet1, startState1, acceptStates1);
-    nfa1.addTransition(1, '1', {2});
-    // nfa1.addTransition(2, '0', {2});
-
-
-
-    std::set<int> states2 = {3, 4};
-    std::set<char> alphabet2 = {'0', '1'};
-    int startState2 = 3;
-    std::set<int> acceptStates2 = {4};
-
-    NFA nfa2(states2, alphabet2, startState2, acceptStates2);
-    nfa2.addTransition(3, '1', {3});
-    nfa2.addTransition(3, '0', {4});
-    nfa2.addTransition(4, '1', {4});
+    nfa1 = NFA(states1, alphabet1, startState1, acceptStates1);
+    nfa1.addTransition(1, 'a', {2});
+    nfa1.addTransition(1, 'b', {3});
 
 
+    std::set<int> states2 = {4, 5};
+    std::set<char> alphabet2 = {'c', 'd'};
+    int startState2 = 4;
+    std::set<int> acceptStates2 = {5};
 
-    NFA c_nfa = NFA::alternative(nfa1, nfa2);
-    writeDotToFile(c_nfa, "main.gv");
-
-    std::string input = "10111";
-    if (c_nfa.run(input)) {
-        std::cout << "Input accepted." << std::endl;
-    } else {
-        std::cout << "Input rejected." << std::endl;
-    }
+    nfa2 = NFA(states2, alphabet2, startState2, acceptStates2);
+    nfa2.addTransition(4, 'c', {4});
+    nfa2.addTransition(4, 'd', {5});
 }
 
-
 void concatenation_test() {
-    std::set<int> states1 = {1, 2};
-    std::set<char> alphabet1 = {'0', '1'};
-    int startState1 = 1;
-    std::set<int> acceptStates1 = {2};
-
-    NFA nfa1(states1, alphabet1, startState1, acceptStates1);
-    nfa1.addTransition(1, '1', {2});
-    // nfa1.addTransition(2, '0', {2});
-
-
-
-    std::set<int> states2 = {3, 4};
-    std::set<char> alphabet2 = {'0', '1'};
-    int startState2 = 3;
-    std::set<int> acceptStates2 = {4};
-
-    NFA nfa2(states2, alphabet2, startState2, acceptStates2);
-    nfa2.addTransition(3, '1', {3});
-    nfa2.addTransition(3, '0', {4});
-    nfa2.addTransition(4, '1', {4});
-
-
+    concatenation_setup();
 
     NFA c_nfa = NFA::concatenation(nfa1, nfa2);
     writeDotToFile(c_nfa, "main.gv");
 
-    std::string input = "10111";
+    std::string input = "acccd";
     if (c_nfa.run(input)) {
         std::cout << "Input accepted." << std::endl;
     } else {
@@ -88,70 +57,71 @@ void concatenation_test() {
     }
 }
 
+void alternative_setup() {
+    std::set<int> states1 = {1, 2, 3};
+    std::set<char> alphabet1 = {'a', 'b', 'c'};
+    int startState1 = 1;
+    std::set<int> acceptStates1 = {1, 3};
 
-int main2() {
-    std::set<int> states = {13, 7, 8, 10, 11};
-    std::set<char> alphabet = {'0', '1'};
-    int startState = 13;
-    std::set<int> acceptStates = {11};
+    nfa1 = NFA(states1, alphabet1, startState1, acceptStates1);
+    nfa1.addTransition(1, 'a', {1});
+    nfa1.addTransition(1, 'b', {2});
+    nfa1.addTransition(2, 'c', {3});
 
-    NFA nfa1(states, alphabet, startState, acceptStates);
 
-    nfa1.addTransition(13, '0', {7, 10});
-    nfa1.addTransition(7, '1', {8});
-    nfa1.addTransition(8, '0', {7, 10});
-    nfa1.addTransition(10, '0', {11});
+    std::set<int> states2 = {4, 5};
+    std::set<char> alphabet2 = {'0', '1'};
+    int startState2 = 4;
+    std::set<int> acceptStates2 = {5};
 
-    cout << 123 << endl;
-    writeDotToFile(nfa1, "main.gv");
-
-    return 0;
+    nfa2 = NFA(states2, alphabet2, startState2, acceptStates2);
+    nfa2.addTransition(4, '1', {5});
+    nfa2.addTransition(5, '0', {5});
 }
 
+void alternative_test() {
+    alternative_setup();
+
+    NFA c_nfa = NFA::alternative(nfa1, nfa2);
+    writeDotToFile(c_nfa, "main.gv");
+
+    std::string input = "acccd";
+    if (c_nfa.run(input)) {
+        std::cout << "Input accepted." << std::endl;
+    } else {
+        std::cout << "Input rejected." << std::endl;
+    }
+}
+
+void iteration_setup() {
+    std::set<int> states2 = {4, 5};
+    std::set<char> alphabet2 = {'c', 'd'};
+    int startState2 = 4;
+    std::set<int> acceptStates2 = {5};
+
+    nfa2 = NFA(states2, alphabet2, startState2, acceptStates2);
+    nfa2.addTransition(4, 'c', {4});
+    nfa2.addTransition(4, 'd', {5});
+}
 
 void iteration_test() {
-    std::set<int> states = {1, 2, 3};
-    std::set<char> alphabet = {'a', 'b', 'c'};
-    int startState = 1;
-    std::set<int> acceptStates = {2};
+    iteration_setup();
 
-    NFA nfa(states, alphabet, startState, acceptStates);
+    NFA c_nfa = NFA::iteration_plus(nfa2);
+    writeDotToFile(c_nfa, "main.gv");
 
-    nfa.addTransition(1, 'a', {2});
-    nfa.addTransition(2, 'b', {3});
-    nfa.addTransition(3, 'c', {2});
-
-    NFA nfa_i = NFA::iteration(nfa);
-
-    writeDotToFile(nfa_i, "main.gv");
+    std::string input = "acccd";
+    if (c_nfa.run(input)) {
+        std::cout << "Input accepted." << std::endl;
+    } else {
+        std::cout << "Input rejected." << std::endl;
+    }
 }
-
-
-
-void iterationPlus_test() {
-    std::set<int> states = {1, 2, 3};
-    std::set<char> alphabet = {'a', 'b', 'c'};
-    int startState = 1;
-    std::set<int> acceptStates = {2};
-
-    NFA nfa(states, alphabet, startState, acceptStates);
-
-    nfa.addTransition(1, 'a', {2});
-    nfa.addTransition(2, 'b', {3});
-    nfa.addTransition(3, 'c', {2});
-
-    NFA nfa_i = NFA::iteration_plus(nfa);
-
-    writeDotToFile(nfa_i, "main.gv");
-}
-
 
 int main() {
     // concatenation_test();
     // alternative_test();
-    // iteration_test();
-    iterationPlus_test();
-
+    iteration_test();
 
     return 0;
 }

@@ -11,7 +11,12 @@ void NFA::addTransition(int state, char symbol, const std::set<int>& nextStates)
 }
 
 void NFA::newState() {
-    states.insert(*std::prev(states.end()) + 1);
+    int maxState = *std::max_element(states.begin(), states.end());
+    states.insert(maxState + 1);
+}
+
+void NFA::addSymbol(char c) {
+    alphabet.insert(c);
 }
 
 bool NFA::runHelper(int currentState, const std::string &input, int index) {
@@ -153,9 +158,7 @@ NFA NFA::alternative(const NFA &nfa1, const NFA &nfa2) {
     int max1 = *std::max_element(nfa1.states.begin(), nfa1.states.end());
     int min2 = *std::min_element(nfa2.states.begin(), nfa2.states.end());
     int offset = max1 - min2 + 1;
-    if (offset < 0) {
-        offset = 0;
-    }
+    if (offset < 0) offset = 0;
 
     int newStartState = std::max(max1, *std::max_element(nfa2.states.begin(), nfa2.states.end())) + 1;
 
@@ -163,6 +166,7 @@ NFA NFA::alternative(const NFA &nfa1, const NFA &nfa2) {
     for (int state : nfa2.states) newStates.insert(state + offset);
     newStates.erase(nfa1.startState);
     newStates.erase(nfa2.startState + offset);
+
 
     for (const auto& [key, value] : nfa1.transitionTable) {
         if (key.first == nfa1.startState) continue;
@@ -179,6 +183,7 @@ NFA NFA::alternative(const NFA &nfa1, const NFA &nfa2) {
 
         newTransitions[{key.first + offset, key.second}] = newValue;
     }
+
 
     for (const char &symbol : nfa1.alphabet) {
         auto it = nfa1.transitionTable.find({nfa1.startState, symbol});
@@ -218,17 +223,20 @@ NFA NFA::alternative(const NFA &nfa1, const NFA &nfa2) {
     for (int state : nfa2.acceptStates) newAcceptStates.insert(state + offset);
 
     auto s1 = newAcceptStates.find(nfa1.startState);
-    auto s2 = newAcceptStates.find(nfa2.startState + offset);
-    if (s1 != newAcceptStates.end() || s2 != newAcceptStates.end()) {
+    if (s1 != newAcceptStates.end()) {
         newAcceptStates.erase(s1);
-        newAcceptStates.erase(s2);
-
         newAcceptStates.insert(newStartState);
     }
 
+    auto s2 = newAcceptStates.find(nfa2.startState + offset);
+    if (s2 != newAcceptStates.end()) {
+        newAcceptStates.erase(s2);
+        newAcceptStates.insert(newStartState);
+    }
+    
     NFA newNfa = NFA(newStates, newAlphabet, newStartState, newAcceptStates);
     newNfa.transitionTable = newTransitions;
-
+    
     return newNfa;
 }
 
@@ -249,9 +257,18 @@ NFA NFA::iteration(const NFA &nfa) {
     for (const char &symbol : nfa.alphabet) {
         auto it = nfa.transitionTable.find({nfa.startState, symbol});
         if (it != nfa.transitionTable.end()) {
-            newTransitions[{newStartState, symbol}].insert(it->second.begin(), it->second.end());
+            std::set<int> newStates;
+            for (int state : it->second) {
+                if (state == nfa.startState) {
+                    newStates.insert(newStartState);
+                } else {
+                    newStates.insert(state);
+                }
+            }
+
+            newTransitions[{newStartState, symbol}].insert(newStates.begin(), newStates.end());
             for (int state : nfa.acceptStates) {
-                newTransitions[{state, symbol}].insert(it->second.begin(), it->second.end());
+                newTransitions[{state, symbol}].insert(newStates.begin(), newStates.end());
             }
         }
     }
@@ -290,9 +307,18 @@ NFA NFA::iteration_plus(const NFA &nfa) {
     for (const char &symbol : nfa.alphabet) {
         auto it = nfa.transitionTable.find({nfa.startState, symbol});
         if (it != nfa.transitionTable.end()) {
-            newTransitions[{newStartState, symbol}].insert(it->second.begin(), it->second.end());
+            std::set<int> newStates;
+            for (int state : it->second) {
+                if (state == nfa.startState) {
+                    newStates.insert(newStartState);
+                } else {
+                    newStates.insert(state);
+                }
+            }
+
+            newTransitions[{newStartState, symbol}].insert(newStates.begin(), newStates.end());
             for (int state : nfa.acceptStates) {
-                newTransitions[{state, symbol}].insert(it->second.begin(), it->second.end());
+                newTransitions[{state, symbol}].insert(newStates.begin(), newStates.end());
             }
         }
     }
