@@ -96,7 +96,7 @@ void concatenation_test() {
 
     NFA nfa1(states1, alphabet1, startState1, acceptStates1);
     nfa1.addTransition(1, '1', {2});
-    // nfa1.addTransition(2, '0', {2});
+    nfa1.addTransition(2, '0', {2});
 
 
 

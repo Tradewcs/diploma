@@ -32,5 +32,6 @@ public:
     bool run(const std::string &input);
 
 private:
+    int calculateOffset(const NFA& nfa) const;
     bool runHelper(int currentState, const std::string &input, int index);
 };

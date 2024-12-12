@@ -80,39 +80,48 @@ std::string NFA::convertToDot() {
     return dot;
 }
 
+int NFA::calculateOffset(const NFA& nfa) const {
+    int max1 = *std::max_element(this->states.begin(), this->states.end());
+    int max2 = *std::max_element(nfa.states.begin(), nfa.states.end());
+
+    int min1 = *std::min_element(this->states.begin(), this->states.end());
+    int min2 = *std::min_element(nfa.states.begin(), nfa.states.end());
+
+    int offset = 0;
+    while (min1 <= max2 && max1 >= min1) {
+        max2++;
+        min2++;
+
+        offset++;
+    }
+
+    return offset;
+}
+
 NFA NFA::concatenation(const NFA& nfa1, const NFA& nfa2) {
     std::set<int> newStates;
     std::set<char> newAlphabet = nfa1.alphabet;
     newAlphabet.insert(nfa2.alphabet.begin(), nfa2.alphabet.end());
 
     std::map<std::pair<int, char>, std::set<int>> newTransitions;
-    std::set<int> newAcceptStates;
+    std::set<int> newAcceptStates = nfa2.acceptStates;
 
-    int max1 = *std::max_element(nfa1.states.begin(), nfa1.states.end());
-    int min2 = *std::min_element(nfa2.states.begin(), nfa2.states.end());
-    int offset = max1 - min2 + 1;
-    if (offset < 0) {
-        offset = 0;
-    }
+    int offset = nfa1.calculateOffset(nfa2);
+    std::cout << offset << std::endl;
 
     for (int state : nfa1.states) newStates.insert(state);
     for (int state : nfa2.states) newStates.insert(state + offset);
     newStates.erase(nfa2.startState + offset);
 
     for (const auto& [key, value] : nfa1.transitionTable) {
+        if (nfa1.acceptStates.find(key.first) != nfa1.acceptStates.end()) continue;
         newTransitions[key] = value;
     }
 
     for (const auto& [key, value] : nfa2.transitionTable) {
-        if (key.first == nfa2.startState) continue;
-
         std::set<int> newValue;
-        for (const auto &state : value) {
-            if (state == nfa2.startState) {
-                newValue.insert(nfa1.acceptStates.begin(), nfa1.acceptStates.end());
-            } else {
-                newValue.insert(state + offset);
-            }
+        for (int state : value) {
+            newValue.insert(state + offset);
         }
 
         newTransitions[{key.first + offset, key.second}] = newValue;
@@ -125,11 +134,7 @@ NFA NFA::concatenation(const NFA& nfa1, const NFA& nfa2) {
                 auto oldStates = it->second;
                 std::set<int> newStates;
                 for (int s : oldStates) {
-                    if (s == nfa2.startState) {
-                        newStates.insert(nfa1.acceptStates.begin(), nfa1.acceptStates.end());
-                    } else {
-                        newStates.insert(s + offset);
-                    }
+                    newStates.insert(s + offset);
                 }
             
                 newTransitions[{acceptState, symbol}].insert(newStates.begin(), newStates.end());
@@ -137,8 +142,8 @@ NFA NFA::concatenation(const NFA& nfa1, const NFA& nfa2) {
         }
     }
 
-    for (int state : nfa2.acceptStates) {
-        newAcceptStates.insert(state + offset);
+    if (nfa2.acceptStates.find(nfa2.startState) != nfa2.acceptStates.end()) {
+        newAcceptStates.insert(nfa1.acceptStates.begin(), nfa1.acceptStates.end());
     }
 
     NFA newNfa = NFA(newStates, newAlphabet, nfa1.startState, newAcceptStates);
@@ -155,27 +160,18 @@ NFA NFA::alternative(const NFA &nfa1, const NFA &nfa2) {
     std::map<std::pair<int, char>, std::set<int>> newTransitions;
     std::set<int> newAcceptStates;
 
-    int max1 = *std::max_element(nfa1.states.begin(), nfa1.states.end());
-    int min2 = *std::min_element(nfa2.states.begin(), nfa2.states.end());
-    int offset = max1 - min2 + 1;
-    if (offset < 0) offset = 0;
+    int offset = nfa1.calculateOffset(nfa2);
 
-    int newStartState = std::max(max1, *std::max_element(nfa2.states.begin(), nfa2.states.end())) + 1;
+    int newStartState = std::max(*std::max_element(nfa1.states.begin(), nfa1.states.end()), *std::max_element(nfa2.states.begin(), nfa2.states.end()) + offset) + 1;
 
     for (int state : nfa1.states) newStates.insert(state);
     for (int state : nfa2.states) newStates.insert(state + offset);
-    newStates.erase(nfa1.startState);
-    newStates.erase(nfa2.startState + offset);
-
+    newStates.insert(newStartState);
 
     for (const auto& [key, value] : nfa1.transitionTable) {
-        if (key.first == nfa1.startState) continue;
-
         newTransitions[key] = value;
     }
     for (const auto& [key, value] : nfa2.transitionTable) {
-        if (key.first == nfa2.startState) continue;
-
         std::set<int> newValue;
         for (const int &state : value) {
             newValue.insert(state + offset);
@@ -188,17 +184,7 @@ NFA NFA::alternative(const NFA &nfa1, const NFA &nfa2) {
     for (const char &symbol : nfa1.alphabet) {
         auto it = nfa1.transitionTable.find({nfa1.startState, symbol});
         if (it != nfa1.transitionTable.end()) {
-            auto oldStates = it->second;
-            std::set<int> newStates;
-            for (int s : oldStates) {
-                if (s == nfa1.startState) {
-                    newStates.insert(newStartState);
-                } else {
-                    newStates.insert(s);
-                }
-            }
-        
-            newTransitions[{newStartState, symbol}].insert(newStates.begin(), newStates.end());
+            newTransitions[{newStartState, symbol}].insert(it->second.begin(), it->second.end());
         }
     }
     
@@ -208,11 +194,7 @@ NFA NFA::alternative(const NFA &nfa1, const NFA &nfa2) {
             auto oldStates = it->second;
             std::set<int> newStates;
             for (int s : oldStates) {
-                if (s == nfa2.startState) {
-                    newStates.insert(newStartState);
-                } else {
-                    newStates.insert(s + offset);
-                }
+                newStates.insert(s + offset);
             }
         
             newTransitions[{newStartState, symbol}].insert(newStates.begin(), newStates.end());
@@ -223,17 +205,11 @@ NFA NFA::alternative(const NFA &nfa1, const NFA &nfa2) {
     for (int state : nfa2.acceptStates) newAcceptStates.insert(state + offset);
 
     auto s1 = newAcceptStates.find(nfa1.startState);
-    if (s1 != newAcceptStates.end()) {
-        newAcceptStates.erase(s1);
+    auto s2 = newAcceptStates.find(nfa2.startState + offset);
+    if (s1 != newAcceptStates.end() || s2 != newAcceptStates.end()) {
         newAcceptStates.insert(newStartState);
     }
 
-    auto s2 = newAcceptStates.find(nfa2.startState + offset);
-    if (s2 != newAcceptStates.end()) {
-        newAcceptStates.erase(s2);
-        newAcceptStates.insert(newStartState);
-    }
-    
     NFA newNfa = NFA(newStates, newAlphabet, newStartState, newAcceptStates);
     newNfa.transitionTable = newTransitions;
     
@@ -245,11 +221,9 @@ NFA NFA::iteration(const NFA &nfa) {
 
     int newStartState = *std::max_element(nfa.states.begin(), nfa.states.end()) + 1;
     std::set<int> newStates = nfa.states;
-    newStates.erase(nfa.startState);
     newStates.insert(newStartState);
 
     std::set<int> newAcceptStates = nfa.acceptStates;
-    newAcceptStates.erase(nfa.startState);
     newAcceptStates.insert(newStartState);
 
     std::map<std::pair<int, char>, std::set<int>> newTransitions;
