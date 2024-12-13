@@ -175,7 +175,7 @@ void iterationPlus_test() {
     nfa.addTransition(2, 'b', {3});
     nfa.addTransition(3, 'c', {2});
 
-    NFA nfa_i = NFA::iteration_plus(nfa);
+    NFA nfa_i = NFA::iterationPlus(nfa);
 
     writeDotToFile(nfa_i, "main.gv");
 }

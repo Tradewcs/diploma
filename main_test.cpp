@@ -107,7 +107,7 @@ void iteration_setup() {
 void iteration_test() {
     iteration_setup();
 
-    NFA c_nfa = NFA::iteration_plus(nfa2);
+    NFA c_nfa = NFA::iterationPlus(nfa2);
     writeDotToFile(c_nfa, "main.gv");
 
     std::string input = "acccd";

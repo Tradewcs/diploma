@@ -1,6 +1,7 @@
 #include "NFA.h"
 #include <iostream>
 #include <algorithm>
+#include <vector>
 
 void NFA::addTransition(int state, char symbol, const std::set<int>& nextStates) {
     if (states.find(state) != states.end() && (alphabet.find(symbol) != alphabet.end() || symbol == '\0')) {
@@ -81,14 +82,14 @@ std::string NFA::convertToDot() {
 }
 
 int NFA::calculateOffset(const NFA& nfa) const {
+    int min1 = *std::min_element(this->states.begin(), this->states.end());
     int max1 = *std::max_element(this->states.begin(), this->states.end());
+
+    int min2 = *std::min_element(nfa.states.begin(), nfa.states.end());
     int max2 = *std::max_element(nfa.states.begin(), nfa.states.end());
 
-    int min1 = *std::min_element(this->states.begin(), this->states.end());
-    int min2 = *std::min_element(nfa.states.begin(), nfa.states.end());
-
     int offset = 0;
-    while (min1 <= max2 && max1 >= min1) {
+    while (min1 <= max2 && max1 >= min2) {
         max2++;
         min2++;
 
@@ -107,7 +108,6 @@ NFA NFA::concatenation(const NFA& nfa1, const NFA& nfa2) {
     std::set<int> newAcceptStates = nfa2.acceptStates;
 
     int offset = nfa1.calculateOffset(nfa2);
-    std::cout << offset << std::endl;
 
     for (int state : nfa1.states) newStates.insert(state);
     for (int state : nfa2.states) newStates.insert(state + offset);
@@ -228,28 +228,22 @@ NFA NFA::iteration(const NFA &nfa) {
 
     std::map<std::pair<int, char>, std::set<int>> newTransitions;
     
-    for (const char &symbol : nfa.alphabet) {
-        auto it = nfa.transitionTable.find({nfa.startState, symbol});
-        if (it != nfa.transitionTable.end()) {
-            std::set<int> newStates;
-            for (int state : it->second) {
-                if (state == nfa.startState) {
-                    newStates.insert(newStartState);
-                } else {
-                    newStates.insert(state);
-                }
-            }
+    for (const auto &[key, toStates] : nfa.transitionTable) {
+        if (key.first != nfa.startState) continue;
 
-            newTransitions[{newStartState, symbol}].insert(newStates.begin(), newStates.end());
-            for (int state : nfa.acceptStates) {
-                newTransitions[{state, symbol}].insert(newStates.begin(), newStates.end());
-            }
-        }
+        newTransitions[{newStartState, key.second}].insert(toStates.begin(), toStates.end());
     }
 
-    for (const auto &[key, value] : nfa.transitionTable) {
-        if (key.first != nfa.startState) {
-            newTransitions[key].insert(value.begin(), value.end());
+    for (const auto &[key, toStates] : nfa.transitionTable) {
+        newTransitions[key].insert(toStates.begin(), toStates.end());
+    }
+
+    for (int state : nfa.acceptStates) {
+        for (const char &symbol : nfa.alphabet) {
+            auto it = nfa.transitionTable.find({nfa.startState, symbol});
+            if (it != nfa.transitionTable.end()) {
+                newTransitions[{state, symbol}].insert(it->second.begin(), it->second.end());
+            }
         }
     }
     
@@ -259,51 +253,67 @@ NFA NFA::iteration(const NFA &nfa) {
 }
 
 
-NFA NFA::iteration_plus(const NFA &nfa) {
-    std::set newAlphabet = nfa.alphabet;
+NFA NFA::iterationPlus(const NFA &nfa) {
+    NFA newNFA = NFA::iteration(nfa);
+    newNFA.acceptStates.erase(newNFA.startState);
 
-    int newStartState = *std::max_element(nfa.states.begin(), nfa.states.end()) + 1;
-    std::set<int> newStates = nfa.states;
-    newStates.erase(nfa.startState);
-    newStates.insert(newStartState);
+    return newNFA;
+}
 
-    std::set<int> newAcceptStates;
-    for (int state : nfa.acceptStates) {
-        if (state == nfa.startState) {
-            newAcceptStates.insert(newStartState);
-        } else {
-            newAcceptStates.insert(state);
-        }
+int getLastElementOfSet(const std::set<int> &set) {
+    if (set.empty()) {
+        return -1;
     }
 
-    std::map<std::pair<int, char>, std::set<int>> newTransitions;
+    return *set.rbegin();
+}
+
+void NFA::removeUnreachable() {
+    std::set<int> reachableStates;
+    std::set<int> boundary;
+
+    reachableStates.insert(startState);
+    boundary.insert(startState);
+
     
-    for (const char &symbol : nfa.alphabet) {
-        auto it = nfa.transitionTable.find({nfa.startState, symbol});
-        if (it != nfa.transitionTable.end()) {
-            std::set<int> newStates;
-            for (int state : it->second) {
-                if (state == nfa.startState) {
-                    newStates.insert(newStartState);
-                } else {
-                    newStates.insert(state);
+    while (!boundary.empty()) {
+        int s = getLastElementOfSet(boundary);
+        boundary.erase(s);
+        for (const char &symbol : alphabet) {
+            auto it = transitionTable.find({s, symbol});
+            if (it != transitionTable.end()) {
+                for (int state : it->second) {
+                    if (reachableStates.find(state) == reachableStates.end()) {
+                        reachableStates.insert(state);
+                        boundary.insert(state);
+                    }
                 }
             }
-
-            newTransitions[{newStartState, symbol}].insert(newStates.begin(), newStates.end());
-            for (int state : nfa.acceptStates) {
-                newTransitions[{state, symbol}].insert(newStates.begin(), newStates.end());
-            }
         }
     }
 
-    for (const auto &[key, value] : nfa.transitionTable) {
-        if (key.first != nfa.startState) {
-            newTransitions[key].insert(value.begin(), value.end());
+    states = reachableStates;
+
+    std::vector<int> statesToErase;
+    for (int state : acceptStates) {
+        if (reachableStates.find(state) == reachableStates.end()) {
+            statesToErase.push_back(state);
         }
     }
-    
-    NFA newNFA = NFA(newStates, newAlphabet, newStartState, newAcceptStates);
-    newNFA.transitionTable = newTransitions;
-    return newNFA;
+
+    for (int state : statesToErase) {
+        acceptStates.erase(state);
+    }
+
+
+    std::vector<std::pair<int, char>> keysToErase;
+    for (const auto &[key, toStates] : transitionTable) {
+        if (reachableStates.find(key.first) == reachableStates.end()) {
+            keysToErase.push_back(key);
+        }
+    }
+
+    for (const auto &key : keysToErase) {
+        transitionTable.erase(key);
+    }
 }

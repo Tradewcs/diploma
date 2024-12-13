@@ -1,4 +1,4 @@
-#include <graphviz/gvc.h>
+// #include <graphviz/gvc.h>
 #include "NFA.h"
 #include <fstream>
 #include <iostream>
@@ -26,7 +26,7 @@ void generateGraphImage(const std::string& dotCode, const std::string& outputFil
     std::remove(tempDotFile.c_str());
 }
 
-int main() {
+int main1() {
     std::set<int> states1 = {0, 1};
     std::set<char> alphabet1 = {'a', 'b'};
     int startState1 = 0;
@@ -45,7 +45,30 @@ int main() {
     nfa2.addTransition(2, 'c', {3});
 
 
-    NFA nfa_res = NFA::iteration(nfa1);
+    // NFA nfa_res = NFA::iteration(nfa1);
+    NFA nfa_res = NFA::alternative(nfa1, nfa2);
+    nfa_res.removeUnreachable();
+    
     generateGraphImage(nfa_res.convertToDot(), "out.png");
 
+    return 0;
+}
+
+int main() {
+    std::set<int> states = {1, 2, 3, 4, 5};
+    std::set<char> alphabet = {'a', 'b', 'c', 'd'};
+    int startState = 1;
+    std::set<int> acceptStates = {3, 4};
+
+    NFA nfa(states, alphabet, startState, acceptStates);
+    nfa.addTransition(1, 'a', {2});
+    nfa.addTransition(1, 'b', {3});
+    nfa.addTransition(4, 'c', {3});
+    nfa.addTransition(5, 'd', {3, 4});
+
+    nfa.removeUnreachable();
+    generateGraphImage(nfa.convertToDot(), "out.png");
+
+
+    return 0;
 }

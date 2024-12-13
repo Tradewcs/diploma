@@ -25,8 +25,9 @@ public:
     static NFA alternative(const NFA &nfa1, const NFA &nfa2);
 
     static NFA iteration(const NFA &nfa);
-    static NFA iteration_plus(const NFA &nfa);
+    static NFA iterationPlus(const NFA &nfa);
 
+    void removeUnreachable();
     std::string convertToDot();
 
     bool run(const std::string &input);
